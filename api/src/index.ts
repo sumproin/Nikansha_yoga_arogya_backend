@@ -10,52 +10,47 @@ import { defaultScheduleEntries } from "./data/defaultSchedule";
 
 const app = express();
 
-// ✅ CORS (allow all)
 app.use(
   cors({
-    origin: "*",
+    origin: process.env.FRONTEND_URL || "*",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// ✅ Handle preflight
-app.options("*", cors());
-
 app.use(express.json());
 
-// ✅ Health check
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, message: "Backend is running" });
 });
 
-// ✅ Routes
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/testimonials", testimonialRoutes);
 app.use("/api/admin", adminRoutes);
 
-// ✅ Seed function
 async function seedScheduleIfEmpty(): Promise<void> {
   const count = await ScheduleEntryModel.countDocuments();
+
   if (count === 0) {
     await ScheduleEntryModel.insertMany(defaultScheduleEntries);
   }
 }
 
-// ✅ Bootstrap for serverless (NO app.listen)
-let isConnected = false;
+const PORT = Number(process.env.PORT) || 5000;
 
-async function init() {
-  if (!isConnected) {
-    await connectDatabase();
-    await seedScheduleIfEmpty();
-    isConnected = true;
-    console.log("✅ Database connected & seeded");
-  }
+async function bootstrap() {
+  await connectDatabase();
+  await seedScheduleIfEmpty();
+
+  app.listen(PORT, () => {
+    // eslint-disable-next-line no-console
+    console.log(`API server is running on http://localhost:${PORT}`);
+  });
 }
 
-// ✅ Vercel handler
-export default async function handler(req: any, res: any) {
-  await init();
-  return app(req, res);
-}
+bootstrap().catch((error) => {
+  // eslint-disable-next-line no-console
+  console.error("Failed to start backend server", error);
+  process.exit(1);
+});
+
