@@ -22,6 +22,11 @@ const testimonialSchema = new Schema(
       minlength: 10,
       maxlength: 600,
     },
+    profileImageUrl: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],

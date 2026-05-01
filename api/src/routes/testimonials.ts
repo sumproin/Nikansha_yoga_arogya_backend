@@ -1,8 +1,23 @@
 import { Router } from "express";
+import multer from "multer";
 import { TestimonialModel } from "../models/Testimonial";
 import { isAdminRequest, requireAdmin } from "../utils/adminAuth";
+import { isCloudinaryConfigured, uploadProfileImageToCloudinary } from "../utils/cloudinary";
 
 const router = Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      cb(new Error("Only image files are allowed."));
+      return;
+    }
+    cb(null, true);
+  },
+});
 
 router.get("/", async (req, res) => {
   try {
@@ -17,7 +32,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", upload.single("profileImage"), async (req, res) => {
   try {
     const { name, role, message } = req.body;
 
@@ -25,7 +40,18 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "name, role and message are required." });
     }
 
-    const created = await TestimonialModel.create({ name, role, message, status: "pending" });
+    let profileImageUrl: string | null = null;
+    if (req.file) {
+      if (!isCloudinaryConfigured()) {
+        return res.status(500).json({
+          message: "Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.",
+        });
+      }
+
+      profileImageUrl = await uploadProfileImageToCloudinary(req.file.buffer, req.file.originalname);
+    }
+
+    const created = await TestimonialModel.create({ name, role, message, profileImageUrl, status: "pending" });
     return res.status(201).json(created);
   } catch (error) {
     return res.status(500).json({ message: "Failed to create testimonial.", error });
