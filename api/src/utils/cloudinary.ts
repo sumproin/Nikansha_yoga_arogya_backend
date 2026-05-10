@@ -42,3 +42,38 @@ export async function uploadProfileImageToCloudinary(fileBuffer: Buffer, filenam
     uploadStream.end(fileBuffer);
   });
 }
+
+export async function uploadGalleryMediaToCloudinary(
+  fileBuffer: Buffer,
+  mediaType: "image" | "video",
+  filename?: string
+): Promise<{ secureUrl: string; publicId: string }> {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: "nikansha/gallery",
+        resource_type: mediaType,
+        public_id: filename ? filename.replace(/\.[^/.]+$/, "") : undefined,
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        if (!result?.secure_url || !result?.public_id) {
+          reject(new Error("Cloudinary upload did not return required media data."));
+          return;
+        }
+
+        resolve({ secureUrl: result.secure_url, publicId: result.public_id });
+      }
+    );
+
+    uploadStream.end(fileBuffer);
+  });
+}
+
+export async function deleteCloudinaryMedia(publicId: string, mediaType: "image" | "video"): Promise<void> {
+  await cloudinary.uploader.destroy(publicId, { resource_type: mediaType });
+}

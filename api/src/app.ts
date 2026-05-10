@@ -4,6 +4,7 @@ import { connectDatabase } from "./config/database";
 import scheduleRoutes from "./routes/schedule";
 import testimonialRoutes from "./routes/testimonials";
 import adminRoutes from "./routes/admin";
+import galleryRoutes from "./routes/gallery";
 import { ScheduleEntryModel } from "./models/ScheduleEntry";
 import { defaultScheduleEntries } from "./data/defaultSchedule";
 
@@ -26,6 +27,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/testimonials", testimonialRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/gallery", galleryRoutes);
 
 let initialized = false;
 
